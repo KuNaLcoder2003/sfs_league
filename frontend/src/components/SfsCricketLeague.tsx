@@ -10,7 +10,7 @@ interface Player {
 }
 
 type Category = "Dhurandhar" | "Shoorveer" | "Yodha";
-type TeamId = "royals" | "strikers" | "blazers" | "thunders";
+type TeamId = string;
 type AgeGroup = "9-11" | "12-16";
 type ViewMode = "players" | "teams";
 
@@ -143,10 +143,14 @@ const PLAYERS_DATA: Player[] = [
 const CATEGORIES: Category[] = ["Dhurandhar", "Shoorveer", "Yodha"];
 
 const TEAMS: Team[] = [
-    { id: "royals", name: "Jaipur Royals", color: "#f59e0b", emoji: "👑" },
-    { id: "strikers", name: "Rajputana Strikers", color: "#ef4444", emoji: "⚔️" },
-    { id: "blazers", name: "Pink City Blazers", color: "#ec4899", emoji: "🔥" },
-    { id: "thunders", name: "Desert Thunders", color: "#8b5cf6", emoji: "⚡" },
+    { id: "1", name: "Rana Pratap Panthers", color: "#f59e0b", emoji: "👑" },
+    { id: "2", name: "Bhagat Singh Warriors", color: "#ef4444", emoji: "⚔️" },
+    { id: "3", name: "Bose Stormers", color: "#ec4899", emoji: "🔥" },
+    { id: "4", name: "Azad Strikers", color: "#8b5cf6", emoji: "⚡" },
+    { id: "5", name: "Royal Rockstar Chava", color: "#8b5cf6", emoji: "⚡" },
+    { id: "6", name: "Chatrapati Shivaji Kings", color: "#8b5cf6", emoji: "⚡" },
+    { id: "7", name: "Laxmi Bai lengends", color: "#8b5cf6", emoji: "⚡" },
+
 ];
 
 const CATEGORY_STYLES: Record<Category, CategoryStyle> = {
