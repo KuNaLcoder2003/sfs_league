@@ -11,12 +11,56 @@ datasource db {
   provider = "postgresql"
 }
 
+enum MatchStatus {
+  Upcoming
+  Ongoing
+  Finished
+}
+
+enum TossDecision {
+  Bat
+  Bowl
+}
+
+enum BallType {
+  FAIR_BALL
+  WIDE
+  NO_BALL
+  DEAD_BALL
+}
+
+// enum BallResult {
+//   ONE_RUN
+//   TWO_RUN
+//   THREE_RUN
+//   FOUR
+//   SIX
+//   WIDE_PLUS_ONE
+//   WIDE_PLUS_TWO
+//   WIDE_PLUS_THREE
+//   WIDE_PLUS_FOUR
+//   WIDE_PLUS_SIX
+//   NO_PLUS_ONE
+//   NO_PLUS_TWO
+//   NO_PLUS_THREE
+//   NO_PLUS_FOUR
+//   NO_PLUS_SIX
+//   WICKET
+//   DOT_BALL
+// }
+
 model Team {
   id      Int      @id @default(autoincrement())
   name    String
   color   String
   emoji   String
   players Player[]
+  matchesAsTeamOne Match[] @relation("TeamOne")
+  matchesAsTeamTwo Match[] @relation("TeamTwo")
+  Toss Match[] @relation("TossWinner")
+  wins Match[] @relation("MatchWinner")
+  inningsBatting Innings[] @relation("BattingTeam")
+  inningsBowling Innings[] @relation("BowlingTeam")
 }
 
 model Player {
@@ -31,4 +75,98 @@ model Player {
   team      Team?    @relation(fields: [teamId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  player_of_the_match Match[] @relation("player_of_the_match")
+  overs_bowled Overs[] @relation("bowler")
+  balls_on_strike Ball[] @relation("batsmen_playing_ball")
+  balls_on_non_strike Ball[] @relation("batsmen_on_non_strike")
 }
+
+model Match {
+  id        Int          @id @default(autoincrement())
+  status    MatchStatus  @default(Upcoming)
+
+  teamOneId Int
+  teamTwoId Int
+
+  teamOne   Team @relation("TeamOne", fields: [teamOneId], references: [id])
+  teamTwo   Team @relation("TeamTwo", fields: [teamTwoId], references: [id])
+
+  tossTeamId Int
+  tossTeam   Team @relation("TossWinner", fields: [tossTeamId], references: [id])
+
+  tossDecision TossDecision
+
+  winnerId Int?
+  winner   Team? @relation("MatchWinner", fields: [winnerId], references: [id])
+
+  result   String?
+  venue    String
+  date     DateTime
+
+  player_of_the_match Int?
+  player Player? @relation("player_of_the_match" , fields: [player_of_the_match] , references: [id])
+
+  innings  Innings[]
+  overs Overs[] @relation("match_over")
+  ball Ball[] @relation("match_ball")
+}
+
+model Innings {
+  id Int @id @default(autoincrement())
+
+  match_id Int
+  match   Match @relation(fields: [match_id], references: [id])
+
+  battingTeamId Int
+  bowlingTeamId Int
+
+  battingTeam Team @relation("BattingTeam", fields: [battingTeamId], references: [id])
+  bowlingTeam Team @relation("BowlingTeam", fields: [bowlingTeamId], references: [id])
+
+  overs_bowled Float @default(0.0)
+  runs_scored Int @default(0)
+  target Int @default(0)
+  overs Overs[] @relation("innings_over")
+  balls Ball[] @relation("innings_ball")
+}
+
+model Overs {
+  id Int @id @default(autoincrement())
+  match_id Int
+  match   Match @relation("match_over",fields: [match_id], references: [id])
+  innings_id Int
+  innings Innings @relation("innings_over" , fields: [innings_id] , references: [id])
+  bowler_id Int
+  bowler Player @relation("bowler" , fields: [bowler_id] , references: [id])
+  over_no Int
+  total_runs Int @default(0)
+  wickets Int @default(0)
+  extras Int @default(0)
+  ball Ball[] @relation("over_ball")
+}
+
+model Ball {
+  id Int @id @default(autoincrement())
+  match_id Int
+  match   Match @relation("match_ball",fields: [match_id], references: [id])
+  innings_id Int
+  innings Innings @relation("innings_ball" , fields: [innings_id] , references: [id])
+  over_id Int
+  over Overs @relation("over_ball" , fields: [over_id] , references: [id])
+  ball_number Int
+  ball_type BallType 
+  batsmen_on_strike Int
+  batsmen_on_non_strike Int
+  batsmen_id_on_strike Player @relation("batsmen_playing_ball" , fields: [batsmen_on_strike] , references: [id])
+  batsmen_id_on_non_strike Player @relation("batsmen_on_non_strike" , fields: [batsmen_on_non_strike] , references: [id])
+  runs Int
+  extras Int
+  is_boundary Boolean
+  is_wicket Boolean 
+}
+
+
+
+
+
+
