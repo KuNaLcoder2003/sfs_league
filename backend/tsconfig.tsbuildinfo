@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/prisma.ts","./src/seed.ts","./src/routes/player.ts","./src/routes/teams.ts"],"version":"5.9.2"}
