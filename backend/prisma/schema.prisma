@@ -29,6 +29,11 @@ enum BallType {
   DEAD_BALL
 }
 
+enum Group {
+  GROUP_A
+  GROUP_B
+}
+
 // enum BallResult {
 //   ONE_RUN
 //   TWO_RUN
@@ -61,6 +66,7 @@ model Team {
   wins Match[] @relation("MatchWinner")
   inningsBatting Innings[] @relation("BattingTeam")
   inningsBowling Innings[] @relation("BowlingTeam")
+  ranking TeamRankings? @relation("group_ranking")
 }
 
 model Player {
@@ -126,6 +132,7 @@ model Innings {
   overs_bowled Float @default(0.0)
   runs_scored Int @default(0)
   target Int @default(0)
+  score Score? @relation("innings_score")
   overs Overs[] @relation("innings_over")
   balls Ball[] @relation("innings_ball")
 }
@@ -163,6 +170,26 @@ model Ball {
   extras Int
   is_boundary Boolean
   is_wicket Boolean 
+}
+
+model TeamRankings {
+  id Int @id @default(autoincrement())
+  team_id Int @unique
+  team Team @relation("group_ranking" , fields: [team_id] , references: [id])
+  group Group
+  matches Int @default(0)
+  lost Int @default(0)
+  won Int @default(0)
+  net_run_rate Int @default(0)
+}
+
+model Score {
+  id Int @id @default(autoincrement())
+  innings_id Int @unique
+  innings Innings @relation("innings_score" , fields: [innings_id] , references: [id])
+  runs Int @default(0)
+  overs Float @default(0)
+  wickets Int @default(0)
 }
 
 
