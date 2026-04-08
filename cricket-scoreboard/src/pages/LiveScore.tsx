@@ -6,7 +6,7 @@ import type { Match, Ball } from '../types';
 import BallTimeline from '../components/BallTimeLine';
 import OverSummary from '../components/OverSummary';
 
-// Poll every 10s as fallback
+// Poll every 10 seconds
 const POLL_MS = 10_000;
 
 export default function LiveScore() {

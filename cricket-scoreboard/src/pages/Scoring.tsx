@@ -11,10 +11,9 @@ import BallTimeline from '../components/BallTimeLine';
 import OverSummary from '../components/OverSummary';
 import Scoreboard from '../components/ScoreBoard';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function fmt(o: number) { return String(o); }
 
-// ─── Component ───────────────────────────────────────────────────────────────
 export default function Scoring() {
     const { matchId } = useParams<{ matchId: string }>();
     const navigate = useNavigate();
@@ -304,7 +303,7 @@ export default function Scoring() {
         finally { setSaving(false); }
     };
 
-    // ─── Render phases ──────────────────────────────────────────────────────────
+
     if (loading) return (
         <div className="flex justify-center items-center min-h-64">
             <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
@@ -334,7 +333,7 @@ export default function Scoring() {
                 </div>
             )}
 
-            {/* ── INNINGS SETUP ─────────────────────────────────────────────────── */}
+            {/* ── INNINGS SETUP ─*/}
             {phase === 'INNINGS_SETUP' && (
                 <div className="bg-gray-900 rounded-2xl p-5 space-y-4">
                     <h3 className="text-white font-bold text-lg">
@@ -351,8 +350,8 @@ export default function Scoring() {
                                         setInningsBowTeamId(t.id === match.teamOne.id ? match.teamTwo.id : match.teamOne.id);
                                     }}
                                     className={`p-3 rounded-xl text-left transition border ${inningsBatTeamId === t.id
-                                            ? 'border-brand-gold bg-brand-gold/10 text-white'
-                                            : 'border-gray-700 text-gray-400 hover:border-gray-500'
+                                        ? 'border-brand-gold bg-brand-gold/10 text-white'
+                                        : 'border-gray-700 text-gray-400 hover:border-gray-500'
                                         }`}
                                 >
                                     <span className="text-xl">{t.emoji}</span>
@@ -404,8 +403,8 @@ export default function Scoring() {
                                             }
                                         }}
                                         className={`p-3 rounded-xl text-left border transition ${isStriker ? 'border-brand-gold bg-brand-gold/10 text-white' :
-                                                isNonStriker ? 'border-blue-500 bg-blue-900/20 text-white' :
-                                                    'border-gray-700 text-gray-400 hover:border-gray-500'
+                                            isNonStriker ? 'border-blue-500 bg-blue-900/20 text-white' :
+                                                'border-gray-700 text-gray-400 hover:border-gray-500'
                                             }`}
                                     >
                                         <p className="text-sm font-semibold">{p.name}</p>
@@ -428,7 +427,7 @@ export default function Scoring() {
                 </div>
             )}
 
-            {/* ── BOWLER SELECT ─────────────────────────────────────────────────── */}
+            {/* ── BOWLER SELECT ────*/}
             {(phase === 'BOWLER_SELECT' || phase === 'OVER_COMPLETE') && bowlingTeam && (
                 <div className="bg-gray-900 rounded-2xl p-5 space-y-4">
                     <h3 className="text-white font-bold text-lg">
@@ -457,8 +456,8 @@ export default function Scoring() {
                                 onClick={() => handleStartOver(p)}
                                 disabled={p.id === lastBowlerId || saving}
                                 className={`p-3 rounded-xl text-left border transition ${p.id === lastBowlerId
-                                        ? 'border-gray-800 text-gray-600 cursor-not-allowed'
-                                        : 'border-gray-700 text-gray-400 hover:border-brand-gold hover:text-white'
+                                    ? 'border-gray-800 text-gray-600 cursor-not-allowed'
+                                    : 'border-gray-700 text-gray-400 hover:border-brand-gold hover:text-white'
                                     }`}
                             >
                                 <p className="text-sm font-semibold">{p.name}</p>
@@ -469,7 +468,7 @@ export default function Scoring() {
                 </div>
             )}
 
-            {/* ── SCORING ───────────────────────────────────────────────────────── */}
+            {/* ── SCORING ─────*/}
             {phase === 'SCORING' && striker && nonStriker && bowler && (
                 <>
                     {/* Current batsmen / bowler strip */}
@@ -534,7 +533,7 @@ export default function Scoring() {
                 </>
             )}
 
-            {/* ── WICKET: NEW BATTER ────────────────────────────────────────────── */}
+            {/* ── WICKET: NEW BATTER ──── */}
             {phase === 'WICKET_NEW_BATTER' && battingTeam && (
                 <div className="bg-gray-900 rounded-2xl p-5 space-y-4">
                     <div className="text-center">
@@ -565,7 +564,7 @@ export default function Scoring() {
                 </div>
             )}
 
-            {/* ── INNINGS COMPLETE ─────────────────────────────────────────────── */}
+            {/* ── INNINGS COMPLETE ─*/}
             {phase === 'INNINGS_COMPLETE' && (
                 <div className="bg-gray-900 rounded-2xl p-6 text-center space-y-4">
                     <span className="text-5xl">🏁</span>
@@ -632,7 +631,7 @@ export default function Scoring() {
                 </div>
             )}
 
-            {/* ── MATCH COMPLETE ────────────────────────────────────────────────── */}
+            {/* ── MATCH COMPLETE ────*/}
             {phase === 'MATCH_COMPLETE' && match?.winner && (
                 <div className="bg-brand-greendark rounded-2xl p-8 text-center space-y-3">
                     <span className="text-6xl">🏆</span>

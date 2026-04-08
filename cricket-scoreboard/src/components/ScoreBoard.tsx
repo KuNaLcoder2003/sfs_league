@@ -43,8 +43,8 @@ export default function Scoreboard({ match, innings, currentInningsIndex }: Prop
                         </span>
                     )}
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${match.status === 'Ongoing' ? 'bg-green-500 text-white' :
-                            match.status === 'Finished' ? 'bg-gray-500 text-white' :
-                                'bg-yellow-500 text-gray-900'
+                        match.status === 'Finished' ? 'bg-gray-500 text-white' :
+                            'bg-yellow-500 text-gray-900'
                         }`}>
                         {match.status}
                     </span>
