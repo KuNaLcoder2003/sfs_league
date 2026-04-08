@@ -1,29 +1,48 @@
-import express from "express";
-import cors from "cors";
-import playerRoutes from "./routes/player.js";
-import teamRoutes from "./routes/teams.js";
-import inningsRouter from "./routes/innings.js"
-import matchRouter from "./routes/match.js"
-import ballRouter from "./routes/ball.js"
-import overRouter from "./routes/over.js"
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+import { setIO } from './lib/io.js';
+import { initSocket } from './socket/socket.js';
+import { errorHandler } from './middleware/error.js';
+
+import teamRoutes from './routes/teams.routes.js';
+import matchRoutes from './routes/match.routes.js';
+import inningsRoutes from './routes/innings.routes.js';
+import ballRoutes from './routes/ball.routes.js';
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const httpServer = createServer(app);
 
-app.use(cors());
-app.use(express.json());
-
-app.use("/api/players", playerRoutes);
-app.use("/api/teams", teamRoutes);
-app.use("/api/innings", inningsRouter)
-app.use("/api/balls", ballRouter)
-app.use("/api/match", matchRouter)
-app.use("/api/over", overRouter)
-
-app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, message: "SFS Cricket API running" });
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        methods: ['GET', 'POST', 'PUT'],
+    },
 });
 
-app.listen(PORT, () => {
-    console.log(`🏏 Server running at http://localhost:${PORT}`);
+setIO(io);
+initSocket(io);
+
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+app.use(express.json());
+
+app.use('/api/teams', teamRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/innings', inningsRoutes);
+app.use('/api/balls', ballRoutes);
+
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'SFS Cricket League API' });
+});
+
+app.use(errorHandler);
+
+const PORT = Number(process.env.PORT) || 4000;
+httpServer.listen(PORT, () => {
+    console.log(`🏏 SFS Cricket League API → http://localhost:${PORT}`);
 });

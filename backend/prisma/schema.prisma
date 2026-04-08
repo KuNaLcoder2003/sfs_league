@@ -34,26 +34,6 @@ enum Group {
   GROUP_B
 }
 
-// enum BallResult {
-//   ONE_RUN
-//   TWO_RUN
-//   THREE_RUN
-//   FOUR
-//   SIX
-//   WIDE_PLUS_ONE
-//   WIDE_PLUS_TWO
-//   WIDE_PLUS_THREE
-//   WIDE_PLUS_FOUR
-//   WIDE_PLUS_SIX
-//   NO_PLUS_ONE
-//   NO_PLUS_TWO
-//   NO_PLUS_THREE
-//   NO_PLUS_FOUR
-//   NO_PLUS_SIX
-//   WICKET
-//   DOT_BALL
-// }
-
 model Team {
   id      Int      @id @default(autoincrement())
   name    String
@@ -74,8 +54,8 @@ model Player {
   name      String
   age       Int
   mobile    String
-  category  String?  // "Dhurandhar" | "Shoorveer" | "Yodha"
-  status    String   @default("unsold") // "sold" | "unsold"
+  category  String?
+  status    String   @default("unsold")
   bidPrice  Float?
   teamId    Int?
   team      Team?    @relation(fields: [teamId], references: [id])
@@ -93,13 +73,11 @@ model Match {
 
   teamOneId Int
   teamTwoId Int
-
   teamOne   Team @relation("TeamOne", fields: [teamOneId], references: [id])
   teamTwo   Team @relation("TeamTwo", fields: [teamTwoId], references: [id])
 
-  tossTeamId Int
-  tossTeam   Team @relation("TossWinner", fields: [tossTeamId], references: [id])
-
+  tossTeamId   Int
+  tossTeam     Team         @relation("TossWinner", fields: [tossTeamId], references: [id])
   tossDecision TossDecision
 
   winnerId Int?
@@ -109,89 +87,103 @@ model Match {
   venue    String
   date     DateTime
 
+  // SCL Juniors 2026 specific
+  match_type      String @default("league")   // "league" | "semifinal" | "final"
+  powerplay_overs Int    @default(2)           // 2 or 3 power-play overs
+  total_overs     Int    @default(8)           // 8 for league/sf, 10 for final
+
   player_of_the_match Int?
-  player Player? @relation("player_of_the_match" , fields: [player_of_the_match] , references: [id])
+  player Player? @relation("player_of_the_match", fields: [player_of_the_match], references: [id])
 
   innings  Innings[]
-  overs Overs[] @relation("match_over")
-  ball Ball[] @relation("match_ball")
+  overs    Overs[]   @relation("match_over")
+  ball     Ball[]    @relation("match_ball")
 }
 
 model Innings {
   id Int @id @default(autoincrement())
 
   match_id Int
-  match   Match @relation(fields: [match_id], references: [id])
+  match    Match @relation(fields: [match_id], references: [id])
 
   battingTeamId Int
   bowlingTeamId Int
+  battingTeam   Team @relation("BattingTeam", fields: [battingTeamId], references: [id])
+  bowlingTeam   Team @relation("BowlingTeam", fields: [bowlingTeamId], references: [id])
 
-  battingTeam Team @relation("BattingTeam", fields: [battingTeamId], references: [id])
-  bowlingTeam Team @relation("BowlingTeam", fields: [bowlingTeamId], references: [id])
+  innings_number Int  @default(1)    // 1 or 2
+  overs_bowled   Float @default(0.0)
+  runs_scored    Int   @default(0)
+  wickets        Int   @default(0)
+  target         Int   @default(0)   // set when starting 2nd innings
+  is_complete    Boolean @default(false)
 
-  overs_bowled Float @default(0.0)
-  runs_scored Int @default(0)
-  target Int @default(0)
-  score Score? @relation("innings_score")
-  overs Overs[] @relation("innings_over")
-  balls Ball[] @relation("innings_ball")
+  score  Score?  @relation("innings_score")
+  overs  Overs[] @relation("innings_over")
+  balls  Ball[]  @relation("innings_ball")
 }
 
 model Overs {
-  id Int @id @default(autoincrement())
-  match_id Int
-  match   Match @relation("match_over",fields: [match_id], references: [id])
+  id         Int @id @default(autoincrement())
+  match_id   Int
+  match      Match @relation("match_over", fields: [match_id], references: [id])
   innings_id Int
-  innings Innings @relation("innings_over" , fields: [innings_id] , references: [id])
-  bowler_id Int
-  bowler Player @relation("bowler" , fields: [bowler_id] , references: [id])
-  over_no Int
+  innings    Innings @relation("innings_over", fields: [innings_id], references: [id])
+  bowler_id  Int
+  bowler     Player @relation("bowler", fields: [bowler_id], references: [id])
+  over_no    Int
   total_runs Int @default(0)
-  wickets Int @default(0)
-  extras Int @default(0)
-  ball Ball[] @relation("over_ball")
+  wickets    Int @default(0)
+  extras     Int @default(0)
+  is_complete Boolean @default(false)
+  ball       Ball[] @relation("over_ball")
 }
 
 model Ball {
-  id Int @id @default(autoincrement())
-  match_id Int
-  match   Match @relation("match_ball",fields: [match_id], references: [id])
+  id         Int @id @default(autoincrement())
+  match_id   Int
+  match      Match @relation("match_ball", fields: [match_id], references: [id])
   innings_id Int
-  innings Innings @relation("innings_ball" , fields: [innings_id] , references: [id])
-  over_id Int
-  over Overs @relation("over_ball" , fields: [over_id] , references: [id])
-  ball_number Int
-  ball_type BallType 
-  batsmen_on_strike Int
-  batsmen_on_non_strike Int
-  batsmen_id_on_strike Player @relation("batsmen_playing_ball" , fields: [batsmen_on_strike] , references: [id])
-  batsmen_id_on_non_strike Player @relation("batsmen_on_non_strike" , fields: [batsmen_on_non_strike] , references: [id])
-  runs Int
-  extras Int
-  is_boundary Boolean
-  is_wicket Boolean 
+  innings    Innings @relation("innings_ball", fields: [innings_id], references: [id])
+  over_id    Int
+  over       Overs @relation("over_ball", fields: [over_id], references: [id])
+
+  ball_number             Int
+  ball_type               BallType
+  batsmen_on_strike       Int
+  batsmen_on_non_strike   Int
+  batsmen_id_on_strike    Player @relation("batsmen_playing_ball", fields: [batsmen_on_strike], references: [id])
+  batsmen_id_on_non_strike Player @relation("batsmen_on_non_strike", fields: [batsmen_on_non_strike], references: [id])
+
+  physical_runs  Int   @default(0)  // actual runs hit by bat
+  scored_runs    Int   @default(0)  // after powerplay doubling
+  runs           Int                // net scored_runs + extras - penalty (written to score)
+  extras         Int   @default(0)
+  is_boundary    Boolean @default(false)
+  is_wicket      Boolean @default(false)
+  is_powerplay   Boolean @default(false)
+  wicket_penalty Int   @default(0)  // 2 if wicket in powerplay, else 0
 }
 
 model TeamRankings {
-  id Int @id @default(autoincrement())
-  team_id Int @unique
-  team Team @relation("group_ranking" , fields: [team_id] , references: [id])
-  group Group
-  matches Int @default(0)
-  lost Int @default(0)
-  won Int @default(0)
-  net_run_rate Int @default(0)
+  id           Int    @id @default(autoincrement())
+  team_id      Int    @unique
+  team         Team   @relation("group_ranking", fields: [team_id], references: [id])
+  group        Group
+  matches      Int    @default(0)
+  lost         Int    @default(0)
+  won          Int    @default(0)
+  net_run_rate Int    @default(0)
 }
 
 model Score {
-  id Int @id @default(autoincrement())
-  innings_id Int @unique
-  innings Innings @relation("innings_score" , fields: [innings_id] , references: [id])
-  runs Int @default(0)
-  overs Float @default(0)
-  wickets Int @default(0)
+  id         Int     @id @default(autoincrement())
+  innings_id Int     @unique
+  innings    Innings @relation("innings_score", fields: [innings_id], references: [id])
+  runs       Int     @default(0)
+  overs      Float   @default(0)
+  wickets    Int     @default(0)
 }
-
 
 
 

@@ -106,4 +106,41 @@ router.post("/:id/release", async (req: Request, res: Response) => {
     }
 });
 
+router.post("/matchSquad", async (req: Request, res: Response) => {
+    try {
+        const { matchId } = req.body;
+        if (!matchId) {
+            res.status(400).json({
+                message: "Bad request",
+                valid: false
+            })
+            return
+        }
+        const match = await prisma.match.findUnique({
+            where: {
+                id: Number(matchId)
+            },
+            select: {
+                teamOne: {
+                    select: {
+                        players: true,
+                        id: true,
+                        name: true
+                    }
+                },
+                teamTwo: {
+                    select: {
+                        players: true,
+                        id: true,
+                        name: true
+                    }
+                }
+            }
+        })
+        res.json(match);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch teams" });
+    }
+})
+
 export default router;
