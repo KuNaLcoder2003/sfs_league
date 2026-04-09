@@ -1,0 +1,461 @@
+import { useEffect, useRef, useState } from "react";
+
+const poolA = ["Rana Pratap Panthers", "Azad Strikers", "Samrat Prithviraj Lions", "Bhagat Singh Warriors"];
+const poolB = ["Royal Rockstar Chava", "Laxmi Bai Legends", "Chatrapati Shivaji Kings", "Bose Stormers"];
+
+const day1Matches = [
+    { id: "M01", t1: "Bhagat Singh Warriors", t2: "Azad Strikers", tag: "Pool A · Opening Clash", icon: "🏏" },
+    { id: "M02", t1: "Bose Stormers", t2: "Laxmi Bai Legends", tag: "Pool B · Battle of Legends", icon: "⚡" },
+    { id: "M03", t1: "Samrat Prithviraj Lions", t2: "Rana Pratap Panthers", tag: "Pool A · Rajput Rivalry", icon: "🔥" },
+    { id: "M04", t1: "Royal Rockstar Chava", t2: "Chatrapati Shivaji Kings", tag: "Pool B · Warrior Kings", icon: "🏆" },
+    { id: "M05", t1: "Bhagat Singh", t2: "Samrat Prithviraj Lions", tag: "Cross Pool · Freedom vs. Courage", icon: "⚔️" },
+    { id: "M06", t1: "Bose Stormers", t2: "Royal Rockstar Chava", tag: "Cross Pool · Heroes Collide", icon: "💥" },
+];
+
+const day2Matches = [
+    { id: "M07", t1: "Azad Strikers", t2: "Rana Pratap Panthers", tag: "Pool A · Revolution vs. Royalty", icon: "🏏" },
+    { id: "M08", t1: "Laxmi Bai Legends", t2: "Chatrapati Shivaji Kings", tag: "Pool B · Rani's Challenge", icon: "⚡" },
+    { id: "M09", t1: "Bhagat Singh", t2: "Rana Pratap Panthers", tag: "Pool A · Legends Face Off", icon: "🔥" },
+    { id: "M10", t1: "Bose Stormers", t2: "Chatrapati Shivaji Kings", tag: "Pool B · Chhatrapati Shivaji Kings", icon: "🏆" },
+    { id: "M11", t1: "Azad", t2: "Samrat Prithviraj Lions", tag: "Cross Pool · Warriors United", icon: "⚔️" },
+    { id: "M12", t1: "Laxmi Bai Legends", t2: "Royal Rockstar Chava", tag: "Cross Pool · Final Day Thriller", icon: "💥" },
+];
+
+/* ── Particle canvas ── */
+function ParticleCanvas() {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current!;
+        const ctx = canvas.getContext("2d")!;
+        let raf: number;
+
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        resize();
+        window.addEventListener("resize", resize);
+
+        type P = { x: number; y: number; r: number; vx: number; vy: number; alpha: number; color: string };
+        const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+        const make = (): P => ({
+            x: rand(0, canvas.width),
+            y: rand(0, canvas.height),
+            r: rand(0.5, 1.8),
+            vy: rand(-0.3, -0.08),
+            vx: rand(-0.08, 0.08),
+            alpha: rand(0.1, 0.5),
+            color: Math.random() < 0.5 ? "255,92,0" : "0,212,255",
+        });
+
+        const particles: P[] = Array.from({ length: 90 }, make);
+
+        const loop = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const p of particles) {
+                p.y += p.vy; p.x += p.vx; p.alpha -= 0.0008;
+                if (p.y < -10 || p.alpha <= 0) Object.assign(p, make());
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = `rgba(${p.color},1)`;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = `rgba(${p.color},0.8)`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            raf = requestAnimationFrame(loop);
+        };
+        loop();
+        return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    }, []);
+
+    return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />;
+}
+
+/* ── Cursor glow ── */
+function CursorGlow() {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const move = (e: MouseEvent) => {
+            if (ref.current) {
+                ref.current.style.left = e.clientX + "px";
+                ref.current.style.top = e.clientY + "px";
+            }
+        };
+        window.addEventListener("mousemove", move);
+        return () => window.removeEventListener("mousemove", move);
+    }, []);
+    return (
+        <div
+            ref={ref}
+            className="fixed z-10 pointer-events-none -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(255,92,0,0.07) 0%, transparent 70%)", transition: "left 0.08s, top 0.08s" }}
+        />
+    );
+}
+
+/* ── Scroll fade-in hook ── */
+function useFadeIn() {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) { el.style.opacity = "1"; el.style.transform = "none"; } },
+            { threshold: 0.1 }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, []);
+    return ref;
+}
+
+/* ── Pool card ── */
+function PoolCard({ letter, label, teams, accent }: { letter: string; label: string; teams: string[]; accent: "orange" | "cyan" }) {
+    const isOrange = accent === "orange";
+    const topBar = isOrange
+        ? "linear-gradient(90deg,#FF5C00,#FFB800)"
+        : "linear-gradient(90deg,#00D4FF,#00FF94)";
+    const letterColor = isOrange ? "#FF5C00" : "#00D4FF";
+    const pipBg = isOrange ? "#FF5C00" : "#00D4FF";
+    const glowBg = isOrange ? "rgba(255,92,0,0.15)" : "rgba(0,212,255,0.15)";
+    const hoverBorder = isOrange ? "rgba(255,92,0,0.4)" : "rgba(0,212,255,0.4)";
+
+    return (
+        <div
+            className="relative rounded-2xl p-4 overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.01]"
+            style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                // @ts-ignore
+                "--hover-border": hoverBorder,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+        >
+            {/* top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl" style={{ background: topBar }} />
+            {/* glow blob */}
+            <div className="absolute -top-8 -right-5 w-20 h-20 rounded-full blur-2xl" style={{ background: glowBg }} />
+
+            <div className="flex items-center gap-2 mb-3">
+                <span className="font-extrabold text-2xl" style={{ fontFamily: "Syne, sans-serif", color: letterColor }}>{letter}</span>
+                <span className="text-[10px] tracking-[2px] uppercase font-semibold" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+            </div>
+
+            {teams.map((t, i) => (
+                <div
+                    key={t}
+                    className="flex items-center gap-2 py-[6px] text-[13px] font-medium transition-colors duration-200 hover:text-yellow-300"
+                    style={{ borderBottom: i < teams.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}
+                >
+                    <span className="text-[10px] font-bold w-4" style={{ color: "rgba(255,255,255,0.3)" }}>{i + 1}</span>
+                    <div className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: pipBg }} />
+                    {t}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/* ── Match card ── */
+function MatchCard({ match, accent, delay }: { match: typeof day1Matches[0]; accent: "orange" | "cyan"; delay: number }) {
+    const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+    const isOrange = accent === "orange";
+    const barGrad = isOrange
+        ? "linear-gradient(180deg,#FF5C00,#FFB800)"
+        : "linear-gradient(180deg,#00D4FF,#00FF94)";
+    const hoverBorder = isOrange ? "rgba(255,92,0,0.35)" : "rgba(0,212,255,0.35)";
+
+    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const id = Date.now();
+        setRipples(r => [...r, { id, x, y }]);
+        setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 600);
+    };
+
+    return (
+        <div
+            onClick={handleClick}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = hoverBorder)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+            className="relative rounded-2xl overflow-hidden cursor-pointer select-none"
+            style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                padding: "14px 16px",
+                marginBottom: "8px",
+                display: "grid",
+                gridTemplateColumns: "36px 1fr auto",
+                alignItems: "center",
+                gap: "12px",
+                opacity: 0,
+                transform: "translateX(-24px)",
+                animation: `cardIn 0.5s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
+                transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.25s, background 0.25s",
+            }}
+            onMouseOver={e => {
+                e.currentTarget.style.transform = "translateX(6px) scale(1.01)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+            }}
+            onMouseOut={e => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            }}
+        >
+            {/* Left accent bar */}
+            <div className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-sm" style={{ background: barGrad }} />
+
+            {/* Ripples */}
+            {ripples.map(rp => (
+                <span
+                    key={rp.id}
+                    className="absolute rounded-full pointer-events-none"
+                    style={{
+                        left: rp.x, top: rp.y,
+                        transform: "translate(-50%,-50%)",
+                        background: "rgba(255,255,255,0.07)",
+                        animation: "rippleAnim 0.6s ease-out forwards",
+                    }}
+                />
+            ))}
+
+            {/* Match number */}
+            <div className="text-center">
+                <span className="block text-[10px] font-bold" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "Syne, sans-serif" }}>M</span>
+                <span className="text-lg font-extrabold leading-none" style={{ color: "rgba(255,255,255,0.12)", fontFamily: "Syne, sans-serif" }}>
+                    {match.id.slice(1)}
+                </span>
+            </div>
+
+            {/* Teams */}
+            <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-extrabold text-[clamp(13px,3.5vw,17px)] tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>{match.t1}</span>
+                    <span
+                        className="text-[9px] font-bold tracking-widest px-[6px] py-[2px] rounded"
+                        style={{ color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >VS</span>
+                    <span className="font-extrabold text-[clamp(13px,3.5vw,17px)] tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>{match.t2}</span>
+                </div>
+                <div className="text-xs mt-1 font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>{match.tag}</div>
+            </div>
+
+            {/* Icon */}
+            <span
+                className="text-2xl leading-none transition-transform duration-300"
+                style={{ display: "block" }}
+                onMouseEnter={e => (e.currentTarget.style.transform = "rotate(-15deg) scale(1.25)")}
+                onMouseLeave={e => (e.currentTarget.style.transform = "none")}
+            >
+                {match.icon}
+            </span>
+        </div>
+    );
+}
+
+/* ── Day section ── */
+function DaySection({ day, date, matches, accent }: { day: string; date: string; matches: typeof day1Matches; accent: "orange" | "cyan" }) {
+    const ref = useFadeIn();
+    const isOrange = accent === "orange";
+    const labelColor = isOrange ? "#FF5C00" : "#00D4FF";
+
+    return (
+        <div
+            ref={ref}
+            className="mb-8"
+            style={{ opacity: 0, transform: "translateY(24px)", transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+        >
+            {/* Day header */}
+            <div className="relative flex items-end gap-3 mb-4">
+                <div>
+                    <div className="text-[10px] tracking-[3px] uppercase font-bold mb-1" style={{ color: labelColor }}>{day}</div>
+                    <div className="font-extrabold text-2xl leading-tight" style={{ fontFamily: "Syne, sans-serif" }}>{date}</div>
+                    <div className="text-xs mt-1 font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>6 Matches · Pool Stage</div>
+                </div>
+                <div
+                    className="absolute right-0 bottom-0 font-extrabold leading-none select-none pointer-events-none"
+                    style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(48px,12vw,72px)", color: "rgba(255,255,255,0.04)", letterSpacing: "-4px" }}
+                >
+                    {day.includes("One") ? "01" : "02"}
+                </div>
+            </div>
+
+            {/* Time chip (Day 1 only) */}
+            {isOrange && (
+                <div className="flex items-center gap-2 mb-4 w-fit px-3 py-1 rounded-full"
+                    style={{ background: "rgba(255,92,0,0.1)", border: "1px solid rgba(255,92,0,0.25)" }}>
+                    <div className="w-[5px] h-[5px] rounded-full bg-orange-500 animate-pulse" />
+                    <span className="text-[11px] font-bold tracking-wider" style={{ color: "#FF5C00" }}>4:00 PM Onwards</span>
+                </div>
+            )}
+
+            {matches.map((m, i) => (
+                <MatchCard key={m.id} match={m} accent={accent} delay={i * 0.07 + 0.1} />
+            ))}
+        </div>
+    );
+}
+
+/* ── Root ── */
+export default function Schedule() {
+    const poolsRef = useFadeIn();
+
+    return (
+        <div className="min-h-screen" style={{ background: "#04050A", color: "#F5F5F5", fontFamily: "'DM Sans', sans-serif" }}>
+            <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+        @keyframes badgePop {
+          from { opacity: 0; transform: scale(0.8) translateY(10px); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.2; }
+        }
+        @keyframes titleSlide {
+          from { transform: translateY(100%); opacity: 0; }
+          to   { transform: none; opacity: 1; }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes cardIn {
+          from { opacity: 0; transform: translateX(-24px); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes rippleAnim {
+          from { width: 10px; height: 10px; opacity: 1; }
+          to   { width: 400px; height: 400px; opacity: 0; }
+        }
+        @keyframes shimmer {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+      `}</style>
+
+            <ParticleCanvas />
+            <CursorGlow />
+
+            {/* Noise overlay */}
+            <div
+                className="fixed inset-0 z-[1] pointer-events-none"
+                style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
+                    opacity: 0.4,
+                    mixBlendMode: "overlay",
+                }}
+            />
+
+            <div className="relative z-[2] max-w-2xl mx-auto px-4 pb-16">
+
+                {/* ── HEADER ── */}
+                <div className="text-center py-14">
+                    {/* Badge */}
+                    <div
+                        className="inline-flex items-center gap-2 px-4 py-[5px] rounded-full mb-6 text-[11px] font-semibold tracking-[2px]"
+                        style={{
+                            background: "rgba(255,92,0,0.12)",
+                            border: "1px solid rgba(255,92,0,0.3)",
+                            color: "#FF5C00",
+                            animation: "badgePop 0.6s cubic-bezier(0.34,1.56,0.64,1) both",
+                        }}
+                    >
+                        <span className="w-[6px] h-[6px] rounded-full bg-orange-500" style={{ animation: "blink 1.4s ease infinite" }} />
+                        LIVE SCHEDULE — S2
+                    </div>
+
+                    {/* Title */}
+                    <div className="overflow-hidden mb-1">
+                        <h1
+                            className="font-extrabold leading-[0.95] tracking-tight"
+                            style={{
+                                fontFamily: "Syne, sans-serif",
+                                fontSize: "clamp(36px,10vw,72px)",
+                                animation: "titleSlide 0.8s cubic-bezier(0.22,1,0.36,1) 0.1s both",
+                            }}
+                        >
+                            <span
+                                className="block"
+                                style={{
+                                    background: "linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%)",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                }}
+                            >
+                                SFS CRICKET
+                            </span>
+                            <span
+                                className="block"
+                                style={{
+                                    background: "linear-gradient(135deg,#FF5C00 0%,#FFB800 100%)",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                }}
+                            >
+                                LEAGUE JUNIORS
+                            </span>
+                        </h1>
+                    </div>
+
+                    {/* Season */}
+                    <p
+                        className="text-[clamp(11px,3vw,14px)] tracking-[6px] uppercase"
+                        style={{ color: "rgba(255,255,255,0.4)", animation: "fadeUp 0.8s ease 0.4s both" }}
+                    >
+                        ⚡ Season 2 · April 2026 · Pool Stage ⚡
+                    </p>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-3 mt-8" style={{ animation: "fadeUp 0.6s ease 0.5s both" }}>
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)" }} />
+                        <span className="text-xl" style={{ filter: "drop-shadow(0 0 6px rgba(255,184,0,0.8))" }}>🏟️</span>
+                        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)" }} />
+                    </div>
+                </div>
+
+                {/* ── POOLS ── */}
+                <div
+                    ref={poolsRef}
+                    style={{ opacity: 0, transform: "translateY(24px)", transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+                >
+                    <p className="text-[11px] tracking-[3px] uppercase font-semibold mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        🏏 Group Stage Pools
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 mb-10">
+                        <PoolCard letter="A" label="Pool Alpha" teams={poolA} accent="orange" />
+                        <PoolCard letter="B" label="Pool Beta" teams={poolB} accent="cyan" />
+                    </div>
+                </div>
+
+                {/* ── DAY 1 ── */}
+                <DaySection day="Match Day One" date="Thursday, 10 April" matches={day1Matches} accent="orange" />
+
+                {/* ── DAY 2 ── */}
+                <DaySection day="Match Day Two" date="Friday, 11 April" matches={day2Matches} accent="cyan" />
+
+                {/* ── FOOTER ── */}
+                <div
+                    className="text-center pt-8 mt-4"
+                    style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                    <p className="font-extrabold text-sm tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.25)", fontFamily: "Syne, sans-serif" }}>
+                        SFS Cricket League Juniors
+                    </p>
+                    <p className="text-[11px] tracking-[2px] uppercase font-semibold" style={{ color: "rgba(255,255,255,0.15)" }}>
+                        Season 2 · April 2026 · Pool Stage
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    );
+}
