@@ -437,10 +437,10 @@ export default function Schedule() {
                 </div>
 
                 {/* ── DAY 1 ── */}
-                <DaySection day="Match Day One" date="Thursday, 10 April" matches={day1Matches} accent="orange" />
+                <DaySection day="Match Day One" date="Friday, 10 April" matches={day1Matches} accent="orange" />
 
                 {/* ── DAY 2 ── */}
-                <DaySection day="Match Day Two" date="Friday, 11 April" matches={day2Matches} accent="cyan" />
+                <DaySection day="Match Day Two" date="Saturday, 11 April" matches={day2Matches} accent="cyan" />
 
                 {/* ── FOOTER ── */}
                 <div
@@ -453,6 +453,52 @@ export default function Schedule() {
                     <p className="text-[11px] tracking-[2px] uppercase font-semibold" style={{ color: "rgba(255,255,255,0.15)" }}>
                         Season 2 · April 2026 · Pool Stage
                     </p>
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                        <div
+                            className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] tracking-[1.5px] uppercase font-semibold"
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                        >
+                            <span>Organised by</span>
+                            {["KD Singhal", "Ravinder Singh", "Nikhil Bhatia"].map((name, i, arr) => (
+                                <span key={name} className="flex items-center gap-3">
+                                    <span
+                                        className="transition-colors duration-200 hover:text-yellow-400 cursor-default"
+                                        style={{ color: "rgba(255,255,255,0.35)" }}
+                                    >
+                                        {name}
+                                    </span>
+                                    {i < arr.length - 1 && (
+                                        <span style={{ color: "rgba(255,255,255,0.1)" }}>·</span>
+                                    )}
+                                </span>
+                            ))}
+                        </div>
+
+                        <div
+                            className="inline-flex items-center gap-2 px-4 py-[6px] rounded-full text-[10px] font-bold tracking-[1.5px] uppercase transition-all duration-300 hover:scale-105 cursor-default"
+                            style={{
+                                background: "rgba(255,92,0,0.08)",
+                                border: "1px solid rgba(255,92,0,0.2)",
+                                color: "rgba(255,255,255,0.3)",
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = "rgba(255,92,0,0.15)";
+                                e.currentTarget.style.borderColor = "rgba(255,92,0,0.4)";
+                                e.currentTarget.style.color = "#FF5C00";
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = "rgba(255,92,0,0.08)";
+                                e.currentTarget.style.borderColor = "rgba(255,92,0,0.2)";
+                                e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+                            }}
+                        >
+                            <span style={{ opacity: 0.5 }}>⚡</span>
+                            <span>Dev</span>
+                            <span style={{ color: "rgba(255,255,255,0.5)" }}>Kunal Singh</span>
+                            <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
+                            <span>+91-8302696878</span>
+                        </div>
+                    </div>
                 </div>
 
             </div>
