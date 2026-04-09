@@ -3,7 +3,7 @@ import type { Player, Team, Category } from "./types";
 import { fetchPlayers, fetchTeams } from "./api";
 import PlayerCard from "./components/PlayerCard";
 import TeamView from "./components/TeamView";
-import Schedule from "./components/SfsCricketschedule"
+import Schedule from "./components/Sfscricketschedule"
 import { Route, Routes } from "react-router-dom";
 
 type AgeGroup = "9-11" | "12-16";
