@@ -17,7 +17,7 @@ const day2Matches = [
     { id: "M08", t1: "Laxmi Bai Legends", t2: "Chatrapati Shivaji Kings", tag: "Pool B · Rani's Challenge", icon: "⚡" },
     { id: "M09", t1: "Bhagat Singh", t2: "Rana Pratap Panthers", tag: "Pool A · Legends Face Off", icon: "🔥" },
     { id: "M10", t1: "Bose Stormers", t2: "Chatrapati Shivaji Kings", tag: "Pool B · Chhatrapati Shivaji Kings", icon: "🏆" },
-    { id: "M11", t1: "Azad", t2: "Samrat Prithviraj Lions", tag: "Cross Pool · Warriors United", icon: "⚔️" },
+    { id: "M11", t1: "Azad Strikers", t2: "Samrat Prithviraj Lions", tag: "Cross Pool · Warriors United", icon: "⚔️" },
     { id: "M12", t1: "Laxmi Bai Legends", t2: "Royal Rockstar Chava", tag: "Cross Pool · Final Day Thriller", icon: "💥" },
 ];
 
