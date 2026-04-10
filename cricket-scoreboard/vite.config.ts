@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'https://sfs-league.kunalserver.live',
         changeOrigin: true,
       },
     },
