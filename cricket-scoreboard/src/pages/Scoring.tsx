@@ -17,6 +17,8 @@ function fmt(o: number) { return String(o); }
 export default function Scoring() {
     const { matchId } = useParams<{ matchId: string }>();
     const navigate = useNavigate();
+    const [pendingOverComplete, setPendingOverComplete] = useState(false);
+    const [target, setTarget] = useState<number | null>(null);
 
     // ── Match data
     const [match, setMatch] = useState<Match | null>(null);
@@ -66,6 +68,10 @@ export default function Scoring() {
                 if (m.innings.length > 0) {
                     const last = m.innings[m.innings.length - 1];
                     setCurrentInningsIdx(m.innings.length - 1);
+                    if (m.innings.length > 1) {
+                        const firstInnings = m.innings[0];
+                        setTarget(firstInnings?.score?.runs ?? firstInnings?.runs_scored ?? 0);
+                    }
                     setInningsId(last.id);
                     setInningsBatTeamId(last.battingTeam.id as unknown as number ?? last.battingTeam.id);
                     setInningsBowTeamId(last.bowlingTeam.id as unknown as number ?? last.bowlingTeam.id);
@@ -73,7 +79,7 @@ export default function Scoring() {
                     if (lastOver && !lastOver.is_complete) {
                         setOverId(lastOver.id);
                         setOverNo(lastOver.over_no);
-                        const fairBalls = lastOver.ball.filter(b => b.ball_type === 'FAIR_BALL' || b.ball_type === 'DEAD_BALL');
+                        const fairBalls = lastOver.ball.filter(b => b.ball_type === 'FAIR_BALL');
                         setBallsInOver(fairBalls.length);
                         setOverBalls(lastOver.ball);
                         const lastBall = lastOver.ball[lastOver.ball.length - 1];
@@ -127,6 +133,7 @@ export default function Scoring() {
             const firstInningsScore = currentInningsIdx > 0
                 ? (match.innings[0]?.score?.runs ?? 0)
                 : 0;
+
             const r = await startInnings({
                 matchId: match.id,
                 battingTeamId: inningsBatTeamId,
@@ -180,7 +187,7 @@ export default function Scoring() {
 
             const { calc, score: newScore, totalFairBalls } = r.data.data;
 
-            // Update local score
+            // ── Update local score display
             setScore({
                 runs: newScore.runs,
                 wickets: newScore.wickets,
@@ -188,7 +195,7 @@ export default function Scoring() {
                 oversDisplay: String(newScore.overs),
             });
 
-            // Build ball for timeline
+            // ── Build ball pill for timeline
             const ballPill: Ball = {
                 id: r.data.data.ball.id,
                 ball_number: ballsInOver + 1,
@@ -206,14 +213,14 @@ export default function Scoring() {
             };
             setOverBalls(prev => [...prev, ballPill]);
 
-            // Increment ball counter only for fair balls
+            // ── Increment fair ball counter only for FAIR_BALL
             let newBallsInOver = ballsInOver;
             if (selBallType === 'FAIR_BALL') {
                 newBallsInOver += 1;
                 setBallsInOver(newBallsInOver);
             }
 
-            // Strike rotation on odd runs (fair ball only)
+            // ── Mid-ball strike rotation (odd runs on FAIR_BALL only)
             let currentStriker = striker;
             let currentNonStriker = nonStriker;
             if (selBallType === 'FAIR_BALL' && selRuns % 2 !== 0) {
@@ -222,66 +229,107 @@ export default function Scoring() {
                 setNonStriker(currentNonStriker);
             }
 
-            // Reset input
+            // ── Reset ball input
             setSelRuns(0);
             setSelBallType('FAIR_BALL');
             setSelWicket(false);
             setSelBoundary(false);
 
-            // Check wicket → new batter
-            if (selWicket) {
-                setDismissed(prev => [...prev, striker.id]);
-                const totalWickets = newScore.wickets;
-                if (totalWickets >= 10) {
-                    await handleInningsComplete();
-                    return;
-                }
-                setStriker(null); // will be selected
-                setPhase('WICKET_NEW_BATTER');
-                return;
-            }
+            // ── Determine if this ball completed the over
+            // Only a FAIR_BALL can complete an over, and only when it's the 6th one
+            const isOverComplete = selBallType === 'FAIR_BALL' && newBallsInOver >= 6;
 
-            // Check over complete
-            if (newBallsInOver >= 6) {
-                // End of over: rotate strike
+            if (isOverComplete) {
+                // End-of-over strike rotation (always swap regardless of runs)
+                // Note: if mid-ball rotation already swapped above, this swaps back correctly
                 setStriker(currentNonStriker);
                 setNonStriker(currentStriker);
 
-                // Push over to allOvers
+                // Push completed over into history
                 setAllOvers(prev => {
                     const updated = [...prev];
                     const idx = updated.findIndex(o => o.id === overId);
                     if (idx >= 0) {
-                        updated[idx] = { ...updated[idx], ball: overBalls, is_complete: true };
+                        updated[idx] = {
+                            ...updated[idx],
+                            ball: [...overBalls, ballPill],
+                            is_complete: true,
+                        };
                     } else {
-                        updated.push({ id: overId, over_no: overNo, bowler, ball: overBalls, total_runs: 0, wickets: 0, extras: 0, is_complete: true });
+                        updated.push({
+                            id: overId,
+                            over_no: overNo,
+                            bowler: bowler,
+                            ball: [...overBalls, ballPill],
+                            total_runs: 0,
+                            wickets: 0,
+                            extras: 0,
+                            is_complete: true,
+                        });
                     }
                     return updated;
                 });
 
-                // Check innings complete (all overs done)
+                // Check if all overs for this innings are done
                 if (overNo >= totalOvers) {
                     await handleInningsComplete();
                     return;
                 }
 
+                // Prep for next over
                 setOverNo(prev => prev + 1);
                 setBallsInOver(0);
                 setOverBalls([]);
+            }
+
+            // ── Handle wicket (AFTER over-complete logic so both conditions are handled)
+            if (selWicket) {
+                setDismissed(prev => [...prev, striker.id]);
+
+                // All 10 wickets down → innings over
+                if (newScore.wickets >= 10) {
+                    await handleInningsComplete();
+                    return;
+                }
+
+                // If wicket AND over complete simultaneously, remember we still
+                // need bowler selection after the new batter is picked
+                if (isOverComplete) {
+                    setPendingOverComplete(true);
+                }
+
+                // Clear striker — new batter will be selected
+                setStriker(null);
+                setPhase('WICKET_NEW_BATTER');
+                return;
+            }
+
+            // ── Over complete with no wicket → go to bowler selection
+            if (isOverComplete) {
+                // Check if target was chased on the last ball of the over (2nd innings)
+                if (currentInningsIdx === 1 && target !== null && newScore.runs > target) {
+                    await handleInningsComplete();
+                    return;
+                }
                 setPhase('OVER_COMPLETE');
                 return;
             }
 
-            // Check target chased (2nd innings)
-            if (currentInningsIdx === 1 && newScore.runs >= (match.innings[0]?.score?.runs ?? 0) + 1) {
+            // ── Mid-over target chase check (2nd innings only)
+            if (currentInningsIdx === 1 && target !== null && newScore.runs > target) {
                 await handleInningsComplete();
                 return;
             }
 
+            // ── Nothing special — continue scoring same over
+            // (phase stays SCORING, striker/nonStriker already updated above)
+
         } catch (e: unknown) {
-            setError('Failed to record ball');
+            setError('Failed to record ball. Please try again.');
+            console.error(e);
+        } finally {
+            setSaving(false);
         }
-        finally { setSaving(false); }
     };
 
     const handleInningsComplete = useCallback(async () => {
@@ -534,33 +582,72 @@ export default function Scoring() {
             )}
 
             {/* ── WICKET: NEW BATTER ──── */}
+            {/* ── WICKET: NEW BATTER ────────────────────────────────────────────── */}
             {phase === 'WICKET_NEW_BATTER' && battingTeam && (
                 <div className="bg-gray-900 rounded-2xl p-5 space-y-4">
+
                     <div className="text-center">
                         <span className="text-4xl">🔴</span>
                         <h3 className="text-white font-bold text-lg mt-2">Wicket!</h3>
                         <p className="text-gray-400 text-sm">
                             {isPowerplay && '−2 run penalty applied. '}
-                            Select new batsman
+                            Select incoming batsman
                         </p>
+                        {pendingOverComplete && (
+                            <p className="mt-1 text-yellow-400 text-xs font-semibold">
+                                ⚡ Over also complete — you'll pick the new bowler after this
+                            </p>
+                        )}
                     </div>
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                        {availableBatsmen.map(p => (
-                            <button key={p.id}
-                                onClick={() => {
-                                    setStriker(p);
-                                    setPhase('SCORING');
-                                }}
-                                className="p-3 rounded-xl text-left border border-gray-700 text-gray-400 hover:border-brand-gold hover:text-white transition"
-                            >
-                                <p className="text-sm font-semibold">{p.name}</p>
-                                <p className="text-xs text-gray-500">Age {p.age}</p>
-                            </button>
-                        ))}
+
+                    {/* Current score reminder */}
+                    <div className="bg-brand-green rounded-xl p-3 text-center">
+                        <p className="text-white font-bold text-2xl">
+                            {score.runs}
+                            <span className="text-green-300 text-xl">/{score.wickets}</span>
+                        </p>
+                        <p className="text-green-400 text-sm">{score.oversDisplay} overs</p>
                     </div>
-                    {availableBatsmen.length === 0 && (
-                        <p className="text-center text-red-400 text-sm">All batsmen dismissed — innings over!</p>
+
+                    {/* Non-striker info (he's still there) */}
+                    {nonStriker && (
+                        <p className="text-xs text-gray-500 text-center">
+                            {nonStriker.name} is at the non-striker end
+                        </p>
                     )}
+
+                    {/* Available batsmen grid */}
+                    <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                        {availableBatsmen.length === 0 ? (
+                            <div className="col-span-2 text-center text-red-400 text-sm py-4">
+                                All batsmen dismissed — innings over!
+                            </div>
+                        ) : (
+                            availableBatsmen.map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => {
+                                        setStriker(p);
+                                        if (pendingOverComplete) {
+                                            // Wicket was on last ball — go to bowler selection next
+                                            setPendingOverComplete(false);
+                                            setPhase('OVER_COMPLETE');
+                                        } else {
+                                            // Mid-over wicket — same bowler continues
+                                            setPhase('SCORING');
+                                        }
+                                    }}
+                                    className="p-3 rounded-xl text-left border border-gray-700 text-gray-400 hover:border-brand-gold hover:text-white transition active:scale-95"
+                                >
+                                    <p className="text-sm font-semibold">{p.name}</p>
+                                    <p className="text-xs text-gray-500">Age {p.age}</p>
+                                    {p.category && (
+                                        <p className="text-xs text-brand-gold mt-0.5">{p.category}</p>
+                                    )}
+                                </button>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -580,6 +667,8 @@ export default function Scoring() {
                     {currentInningsIdx === 0 ? (
                         <button
                             onClick={() => {
+                                const firstInningsRuns = score.runs;
+                                setTarget(firstInningsRuns);
                                 setCurrentInningsIdx(1);
                                 setInningsBatTeamId(inningsBowTeamId);
                                 setInningsBowTeamId(inningsBatTeamId);
@@ -603,24 +692,18 @@ export default function Scoring() {
                             <p className="text-gray-400 text-sm">Determine match result</p>
                             {match && match.innings[0] && (
                                 <>
-                                    {score.runs >= (match.innings[0].score?.runs ?? 0) + 1 ? (
-                                        <button
-                                            onClick={() => handleEndMatch(
-                                                inningsBatTeamId ?? 0,
-                                                `${battingTeam?.name} won by ${10 - score.wickets} wickets`
-                                            )}
-                                            className="w-full bg-green-600 text-white font-bold py-3 rounded-xl"
-                                        >
+                                    {target !== null && score.runs > target ? (
+                                        <button onClick={() => handleEndMatch(
+                                            inningsBatTeamId ?? 0,
+                                            `${battingTeam?.name} won by ${10 - score.wickets} wickets`
+                                        )} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl">
                                             🏆 {battingTeam?.name} wins!
                                         </button>
                                     ) : (
-                                        <button
-                                            onClick={() => handleEndMatch(
-                                                inningsBowTeamId ?? 0,
-                                                `${bowlingTeam?.name} won by ${(match.innings[0].score?.runs ?? 0) - score.runs} runs`
-                                            )}
-                                            className="w-full bg-green-600 text-white font-bold py-3 rounded-xl"
-                                        >
+                                        <button onClick={() => handleEndMatch(
+                                            inningsBowTeamId ?? 0,
+                                            `${bowlingTeam?.name} won by ${(target ?? 0) - score.runs} runs`
+                                        )} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl">
                                             🏆 {bowlingTeam?.name} wins!
                                         </button>
                                     )}

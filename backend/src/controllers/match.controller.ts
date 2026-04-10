@@ -149,7 +149,7 @@ export const endMatch = async (
                 status: 'Finished',
                 winnerId: winnerId ? Number(winnerId) : 0,
                 result,
-                player_of_the_match: playerOfMatchId ? Number(playerOfMatchId) : 0,
+                player_of_the_match: playerOfMatchId && Number(playerOfMatchId),
             },
             include: { teamOne: true, teamTwo: true, winner: true },
         });

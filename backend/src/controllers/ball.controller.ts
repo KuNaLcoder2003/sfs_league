@@ -64,7 +64,7 @@ export const recordBall = async (
             powerplayOvers = 2,
         } = req.body;
 
-        // ─── Scoring calculation ─────────────────────────────────────────────────
+        // Scoring calculation 
         const calc = calculateBall(
             ballType as BallType,
             Number(physicalRuns),
@@ -73,7 +73,7 @@ export const recordBall = async (
             Number(powerplayOvers)
         );
 
-        // ─── Create Ball record ──────────────────────────────────────────────────
+        // Create Ball record 
         const ball = await prisma.ball.create({
             data: {
                 match_id: Number(matchId),
@@ -98,47 +98,47 @@ export const recordBall = async (
             },
         });
 
-        // ─── Update Over totals ──────────────────────────────────────────────────
+        // Update Over totals 
         await prisma.overs.update({
             where: { id: Number(overId) },
             data: {
                 total_runs: { increment: calc.netRuns },
-                wickets: isWicket ? { increment: 1 } : 0,
-                extras: calc.extras > 0 ? { increment: calc.extras } : 0,
+                ...(isWicket && { wickets: { increment: 1 } }),
+                ...(calc.extras > 0 && { extras: { increment: calc.extras } }),
             },
         });
 
-        // ─── Count total fair balls in innings ───────────────────────────────────
+        // Count total fair balls in innings 
         const totalFairBalls = await prisma.ball.count({
             where: {
                 innings_id: Number(inningsId),
-                ball_type: { in: ['FAIR_BALL', 'DEAD_BALL'] },
+                ball_type: 'FAIR_BALL',
             },
         });
 
         const oversDisplay = parseCricketOvers(totalFairBalls);
 
-        // ─── Update Innings ──────────────────────────────────────────────────────
+        // Update Innings 
         await prisma.innings.update({
             where: { id: Number(inningsId) },
             data: {
                 runs_scored: { increment: calc.netRuns },
-                wickets: isWicket ? { increment: 1 } : 0,
                 overs_bowled: oversDisplay,
+                ...(isWicket && { wickets: { increment: 1 } }),
             },
         });
 
-        // ─── Update Score ────────────────────────────────────────────────────────
+        // Update Score 
         const updatedScore = await prisma.score.update({
             where: { innings_id: Number(inningsId) },
             data: {
                 runs: { increment: calc.netRuns },
-                wickets: isWicket ? { increment: 1 } : 0,
                 overs: oversDisplay,
+                ...(isWicket && { wickets: { increment: 1 } }),
             },
         });
 
-        // ─── Emit to all viewers ─────────────────────────────────────────────────
+        // Emit to all viewers
         const payload = {
             ball,
             score: updatedScore,
