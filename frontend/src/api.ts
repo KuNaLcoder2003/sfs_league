@@ -1,6 +1,6 @@
 import type { Player, Team, SellPayload, PatchPayload } from "./types";
 
-const BASE = "http://localhost:4000/api";
+const BASE = "https://sfs-league.kunalserver.live//api";
 
 // ── Players ──────────────────────────────────────────────────────────────────
 
