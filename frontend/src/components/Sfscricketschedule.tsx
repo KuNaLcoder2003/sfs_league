@@ -135,7 +135,7 @@ function PoolCard({ letter, label, teams, accent }: {
                 <span className="text-[9px] font-bold w-4" style={{ color: "rgba(255,255,255,0.2)" }}>#</span>
                 <div className="w-[5px] flex-shrink-0" />
                 <span className="flex-1 text-[9px] tracking-[1.5px] uppercase font-bold" style={{ color: "rgba(255,255,255,0.2)" }}>Team</span>
-                <span className="text-[9px] tracking-[1.5px] uppercase font-bold w-14 text-right" style={{ color: "rgba(255,255,255,0.2)" }}>NRR</span>
+                <span className="text-[9px] tracking-[1.5px] uppercase font-bold w-[72px] text-right" style={{ color: "rgba(255,255,255,0.2)" }}>NRR</span>
             </div>
 
             {/* Team rows sorted by NRR */}
@@ -143,6 +143,8 @@ function PoolCard({ letter, label, teams, accent }: {
                 const isFirst = i === 0;
                 const nrrStr = (t.nrr >= 0 ? "+" : "") + t.nrr.toFixed(3);
                 const nrrColor = t.nrr >= 0 ? posGreen : negRed;
+                const nrrBg = t.nrr >= 0 ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)";
+                const nrrBorder = t.nrr >= 0 ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)";
                 return (
                     <div
                         key={t.name}
@@ -153,13 +155,19 @@ function PoolCard({ letter, label, teams, accent }: {
                             {isFirst ? "▲" : i + 1}
                         </span>
                         <div className="w-[5px] h-[5px] rounded-full flex-shrink-0" style={{ background: isFirst ? pipBg : "rgba(255,255,255,0.2)" }} />
-                        <span className="flex-1 leading-tight text-[clamp(10px,2.5vw,13px)]">{t.name}</span>
+                        <span className="flex-1 leading-tight text-[clamp(9px,2.2vw,12px)]">{t.name}</span>
                         <span
-                            className="font-extrabold text-[11px] w-14 text-right tabular-nums"
+                            className="tabular-nums text-right flex-shrink-0 inline-flex items-center justify-center rounded-md px-[6px] py-[2px]"
                             style={{
                                 fontFamily: "Syne, sans-serif",
+                                fontSize: "clamp(11px,2.8vw,14px)",
+                                fontWeight: 800,
+                                letterSpacing: "0.02em",
                                 color: nrrColor,
-                                textShadow: `0 0 8px ${nrrColor}55`,
+                                background: nrrBg,
+                                border: `1px solid ${nrrBorder}`,
+                                textShadow: `0 0 10px ${nrrColor}88`,
+                                minWidth: "68px",
                             }}
                         >
                             {nrrStr}
