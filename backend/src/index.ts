@@ -36,13 +36,20 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/innings', inningsRoutes);
 app.use('/api/balls', ballRoutes);
 
+
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'SFS Cricket League API' });
 });
 
+app.post('/api/whatsapp-webhook', async (_req, res) => {
+    res.status(200).json({
+        message: "Validated"
+    })
+})
+
 app.use(errorHandler);
 
-const PORT = Number(process.env.PORT) || 4000;
+const PORT = Number(process.env.PORT) || 9000;
 httpServer.listen(PORT, () => {
     console.log(`🏏 SFS Cricket League API → http://localhost:${PORT}`);
 });
